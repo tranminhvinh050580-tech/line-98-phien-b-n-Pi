@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pi Line 98 - Chuan Goc</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=VT323&family=Be+Vietnam+Pro:wght@600&display=swap');
+body{margin:0;background:#008080;font-family:'Be Vietnam Pro',sans-serif;display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:10px}
+.window{background:#c0c0c0;border:3px solid;border-color:#dfdfdf #000 #000 #dfdfdf;box-shadow:2px 2px 0 rgba(0,0,0,.3);width:100%;max-width:560px}
+.title-bar{background:linear-gradient(90deg,#000080,#0000cd);color:white;padding:4px 6px;display:flex;justify-content:space-between;align-items:center;font-weight:700;font-size:14px}
+.title-bar span{font-family:'VT323',monospace;font-size:18px;letter-spacing:1px}
+.content{padding:10px;background:#c0c0c0}
+.top-panel{display:flex;justify-content:space-between;align-items:center;background:#c0c0c0;border:2px solid;border-color:#808080 #fff #fff #808080;padding:8px;margin-bottom:8px}
+.next-box{display:flex;gap:6px;align-items:center}
+.next-label{font-size:11px;font-weight:700}
+.next-ball{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-weight:900;font-size:14px;box-shadow:inset 2px 2px 4px rgba(255,255,255,.8), inset -3px -3px 6px rgba(0,0,0,.5), 1px 1px 2px rgba(0,0,0,.4);position:relative}
+.next-ball::after{content:'';position:absolute;top:4px;left:6px;width:8px;height:6px;background:rgba(255,255,255,.7);border-radius:50%;transform:rotate(-20deg)}
+.score-box{font-family:'VT323',monospace;font-size:20px;background:black;color:#ff0000;padding:2px 8px;border:2px solid;border-color:#808080 #fff #fff #808080;min-width:60px;text-align:right}
+.board{display:grid;grid-template-columns:repeat(9,1fr);gap:0;background:#c0c0c0;border:3px solid;border-color:#808080 #fff #fff #808080;padding:3px}
+.cell{aspect-ratio:1;background:#c0c0c0;border:2px solid;border-color:#fff #808080 #808080 #fff;display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative}
+.cell.empty::after{content:'';width:4px;height:4px;background:#808080;border-radius:50%}
+.cell.path-hint{background:#ffffaa !important}
+.pi-ball{
+ width:78%;height:78%;border-radius:50%;
+ display:flex;align-items:center;justify-content:center;
+ font-weight:900;color:white;font-size:16px;
+ position:relative;
+ box-shadow:inset 4px 4px 8px rgba(255,255,255,.9), inset -6px -6px 12px rgba(0,0,0,.6), 2px 2px 4px rgba(0,0,0,.4);
+ border:1px solid rgba(0,0,0,.2);
+}
+.pi-ball::before{
+ content:'';position:absolute;top:12%;left:18%;width:30%;height:22%;background:rgba(255,255,255,.85);border-radius:50%;transform:rotate(-25deg);
+}
+.pi-ball.selected{
+ animation:jump .35s infinite alternate;
+ transform-origin:bottom;
+}
+@keyframes jump{from{transform:translateY(0) scale(1.05)} to{transform:translateY(-8px) scale(1.05)}}
+.pi-ball.moving{
+ animation:roll .12s linear;
+}
+.controls{display:flex;gap:6px;margin-top:8px}
+.btn{
+ background:#c0c0c0;border:2px solid;border-color:#fff #000 #000 #fff;
+ padding:5px 10px;font-size:11px;font-weight:700;cursor:pointer;
+}
+.btn:active{border-color:#000 #fff #fff #000}
+.info{font-size:11px;margin-top:8px;opacity:.7;text-align:center}
+#fx{position:fixed;inset:0;pointer-events:none;z-index:99}
+</style>
+</head>
+<body>
+<div class="window">
+<div class="title-bar"><span>Pi Line 98 - Xep 5 Pi No!</span><span style="background:#c0c0c0;color:black;padding:0 4px;border:1px solid">_ □ X</span></div>
+<div class="content">
+<div class="top-panel">
+<div class="next-box"><span class="next-label">SAP RA:</span><div id="next" style="display:flex;gap:5px"></div></div>
+<div style="display:flex;gap:10px;align-items:center"><span class="next-label">DIEM:</span><div id="score" class="score-box">0</div><span class="next-label">KY LUC:</span><div id="best" class="score-box" style="color:#00ff00">0</div></div>
+</div>
+<div id="board" class="board"></div>
+<div class="controls">
+<button class="btn" onclick="newGame()">Game moi (F2)</button>
+<button class="btn" onclick="undo()">Hoan tac (Ctrl+Z)</button>
+<button class="btn" onclick="hint()">Goi y (H)</button>
+<select id="colorCount" class="btn" onchange="newGame()"><option value="5">5 mau</option><option value="7" selected>7 mau Pi</option><option value="9">9 mau</option></select>
+</div>
+<div class="info">Chon 1 vien Pi tron co chu π → chon o trong co duong di → xep 5 vien cung mau thang hang se bien mat va no!</div>
+</div>
+</div>
+<canvas id="fx"></canvas>
+<div id="over" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100;align-items:center;justify-content:center">
+<div class="window" style="max-width:320px"><div class="title-bar"><span>Game Over</span></div><div class="content" style="text-align:center"><p style="font-weight:700">Ban da het cho!</p><p id="final" style="margin:10px 0"></p><button class="btn" onclick="newGame()" style="width:100%;padding:10px">Choi lai</button></div></div>
+</div>
+
+<script>
+const COLORS=[
+{c:'do',h:'#ff0000',b:'radial-gradient(circle at 30% 30%, #ffaaaa, #ff0000 50%, #800000)'},
+{c:'xanhduong',h:'#0000ff',b:'radial-gradient(circle at 30% 30%, #aaaaff, #0000ff 50%, #000080)'},
+{c:'vang',h:'#ffff00',b:'radial-gradient(circle at 30% 30%, #ffffaa, #ffff00 50%, #808000)'},
+{c:'xanhla',h:'#00a000',b:'radial-gradient(circle at 30% 30%, #aaffaa, #00c000 50%, #005000)'},
+{c:'tim',h:'#a000a0',b:'radial-gradient(circle at 30% 30%, #ffaaFF, #c000c0 50%, #600060)'},
+{c:'cyan',h:'#00a0a0',b:'radial-gradient(circle at 30% 30%, #aaffff, #00c0c0 50%, #005050)'},
+{c:'nau',h:'#a05000',b:'radial-gradient(circle at 30% 30%, #ffcc88, #c07000 50%, #603000)'},
+{c:'hong',h:'#ff60a0',b:'radial-gradient(circle at 30% 30%, #ffccdd, #ff70a0 50%, #a03050)'},
+{c:'xam',h:'#606060',b:'radial-gradient(circle at 30% 30%, #cccccc, #808080 50%, #404040)'},
+];
+let S=9, board=[], sel=null, score=0, next=[], hist=[], best=+localStorage.getItem('piBest98')||0;
+document.getElementById('best').textContent=best;
+const $=id=>document.getElementById(id);
+
+function mkBoard(){
+ const b=$('board'); b.innerHTML=''; b.style.gridTemplateColumns=`repeat(${S},1fr)`;
+ board=Array(S).fill(0).map(()=>Array(S).fill(null));
+ for(let r=0;r<S;r++)for(let c=0;c<S;c++){
+  let cell=document.createElement('div'); cell.className='cell empty'; cell.dataset.r=r; cell.dataset.c=c; cell.onclick=()=>click(r,c); b.appendChild(cell);
+ }
+}
+function draw(){
+ document.querySelectorAll('.cell').forEach(cell=>{
+  const r=+cell.dataset.r,c=+cell.dataset.c;
+  const v=board[r][c];
+  cell.innerHTML=''; cell.classList.remove('empty');
+  if(!v){cell.classList.add('empty'); return;}
+  let ball=document.createElement('div'); ball.className='pi-ball'; ball.style.background=v.b;
+  if(sel&&sel.r==r&&sel.c==c) ball.classList.add('selected');
+  ball.textContent='π'; ball.style.fontSize='16px'; ball.style.textShadow='0 1px 2px rgba(0,0,0,.8)';
+  cell.appendChild(ball);
+ });
+ $('score').textContent=score;
+ const n=$('next'); n.innerHTML=''; next.forEach(col=>{
+  let d=document.createElement('div'); d.className='next-ball'; d.style.background=col.b; d.textContent='π'; d.style.fontSize='14px'; n.appendChild(d);
+ });
+}
+function empties(){let a=[];for(let r=0;r<S;r++)for(let c=0;c<S;c++)if(!board[r][c])a.push({r,c});return a;}
+function rndCol(){let cnt=+$('colorCount').value; return COLORS[Math.floor(Math.random()*cnt)];}
+function genNext(){next=[];for(let i=0;i<3;i++)next.push(rndCol());}
+function spawn(k){let e=empties(); for(let i=0;i<k;i++){if(!e.length)break; let j=Math.floor(Math.random()*e.length); let {r,c}=e.splice(j,1)[0]; board[r][c]=next[i]||rndCol();}}
+function bfs(sr,sc,tr,tc){
+ if(board[tr][tc])return null;
+ let q=[[sr,sc]], vis=Array(S).fill(0).map(()=>Array(S).fill(false)), prev=Array(S).fill(0).map(()=>Array(S).fill(null));
+ vis[sr][sc]=true;
+ while(q.length){let [r,c]=q.shift(); if(r==tr&&c==tc)break; for(let [dr,dc] of [[1,0],[-1,0],[0,1],[0,-1]]){let nr=r+dr,nc=c+dc; if(nr<0||nr>=S||nc<0||nc>=S)continue; if(vis[nr][nc])continue; if(board[nr][nc]&&!(nr==tr&&nc==tc))continue; vis[nr][nc]=true; prev[nr][nc]=[r,c]; q.push([nr,nc]);}}
+ if(!vis[tr][tc])return null;
+ let path=[],cur=[tr,tc]; while(cur){path.unshift(cur); cur=prev[cur[0]][cur[1]];} return path;
+}
+function click(r,c){
+ if(board[r][c]){sel={r,c}; draw(); return;}
+ if(!sel)return;
+ let path=bfs(sel.r,sel.c,r,c);
+ if(!path){return;}
+ hist.push({board:JSON.parse(JSON.stringify(board)),score,next:[...next]}); if(hist.length>20)hist.shift();
+ let col=board[sel.r][sel.c]; board[sel.r][sel.c]=null;
+ let i=0;
+ function step(){
+  if(i>=path.length){
+   let lines=findLines(r,c);
+   if(lines.length){boom(lines);}
+   else{ spawn(3); genNext(); let all=findAll(); if(all.length) boom(all); else checkOver(); }
+   sel=null; draw(); return;
+  }
+  let [pr,pc]=path[i];
+  document.querySelectorAll('.path-hint').forEach(e=>e.classList.remove('path-hint'));
+  if(i<path.length-1){let cell=document.querySelector(`[data-r="${pr}"][data-c="${pc}"]`); if(cell)cell.classList.add('path-hint');}
+  else{board[pr][pc]=col;}
+  draw(); sel={r:pr,c:pc}; i++; setTimeout(step,60);
+ }
+ step();
+}
+function findLines(r,c){
+ let col=board[r][c]; if(!col)return[];
+ let all=[];
+ let dirs=[[[0,1],[0,-1]],[[1,0],[-1,0]],[[1,1],[-1,-1]],[[1,-1],[-1,1]]];
+ for(let pair of dirs){let line=[{r,c}]; for(let [dr,dc] of pair){let nr=r+dr,nc=c+dc; while(nr>=0&&nr<S&&nc>=0&&nc<S&&board[nr][nc]&&board[nr][nc].c===col.c){line.push({r:nr,c:nc}); nr+=dr; nc+=dc;}} if(line.length>=5)all.push(...line);}
+ let uniq={}; all.forEach(p=>uniq[p.r+','+p.c]=p); let res=Object.values(uniq); return res.length>=5?res:[];
+}
+function findAll(){let m={}; for(let r=0;r<S;r++)for(let c=0;c<S;c++)if(board[r][c]){let l=findLines(r,c); l.forEach(p=>m[p.r+','+p.c]=p);} return Object.values(m);}
+function boom(cells){
+ let add=cells.length*2; score+=add; if(score>best){best=score; localStorage.setItem('piBest98',best); $('best').textContent=best;}
+ cells.forEach(({r,c})=>{let col=board[r][c]; if(col) fx(r,c,col.h); board[r][c]=null;});
+ draw();
+}
+function fx(r,c,hex){
+ const canvas=$('fx'); const rect=$('board').getBoundingClientRect(); const cw=rect.width/S;
+ const x=rect.left+c*cw+cw/2, y=rect.top+r*cw+cw/2;
+ const ctx=canvas.getContext('2d'); canvas.width=innerWidth; canvas.height=innerHeight;
+ for(let i=0;i<12;i++){let p={x,y,vx:(Math.random()-0.5)*10,vy:(Math.random()-0.5)*10-2,life:1,col:hex}; (function anim(){if(p.life<=0)return; ctx.fillStyle=p.col; ctx.globalAlpha=p.life; ctx.beginPath(); ctx.arc(p.x,p.y,5,0,6.28); ctx.fill(); p.x+=p.vx; p.y+=p.vy; p.vy+=0.2; p.life-=0.03; requestAnimationFrame(anim);})();}
+ setTimeout(()=>ctx.clearRect(0,0,canvas.width,canvas.height),700);
+}
+function checkOver(){if(empties().length==0){$('final').textContent='Diem: '+score+' - Ky luc: '+best; $('over').style.display='flex';}}
+function newGame(){$('over').style.display='none'; score=0; sel=null; hist=[]; mkBoard(); genNext(); spawn(5); genNext(); draw();}
+function undo(){if(!hist.length)return; let h=hist.pop(); board=h.board; score=h.score; next=h.next; draw();}
+function hint(){
+ for(let r=0;r<S;r++)for(let c=0;c<S;c++)if(board[r][c])for(let tr=0;tr<S;tr++)for(let tc=0;tc<S;tc++)if(!board[tr][tc]){
+  let path=bfs(r,c,tr,tc); if(!path)continue;
+  let tmp=board[tr][tc]; board[tr][tc]=board[r][c]; board[r][c]=null;
+  let l=findLines(tr,tc); board[r][c]=board[tr][tc]; board[tr][tc]=tmp;
+  if(l.length){sel={r,c}; draw(); return;}
+ }
+ for(let r=0;r<S;r++)for(let c=0;c<S;c++)if(board[r][c])for(let tr=0;tr<S;tr++)for(let tc=0;tc<S;tc++)if(!board[tr][tc]&&bfs(r,c,tr,tc)){sel={r,c}; draw(); return;}
+}
+mkBoard(); genNext(); spawn(5); genNext(); draw();
+document.addEventListener('keydown',e=>{if(e.key==='F2')newGame(); if(e.key.toLowerCase()==='h')hint(); if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z')undo();});
+</script>
+</body>
+</html>
